@@ -1640,11 +1640,14 @@ function gameLaser(area){
         cell.className='laser-cell';
         const g=grid[i];
 
-        // источник
+        // источник — показываем иконку с направлением луча
         if(r===source.r && c===source.c){
           cell.classList.add('laser-src');
-          cell.textContent='🔦';
-          cell.disabled=true;
+          const arrowMap = { up: '↑', down: '↓', left: '←', right: '→' };
+          const dirArrow = arrowMap[source.dir] || '';
+          cell.textContent = '🔦' + dirArrow;
+          cell.title = 'Направление: ' + (source.dir || '');
+          cell.disabled = true;
         }
         // цель
         else if(r===target.r && c===target.c){
