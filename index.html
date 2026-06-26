@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Чемоданчик игр</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ЭКРАН: выбор профиля -->
+  <section id="screen-profile" class="screen">
+    <div class="profile-box">
+      <h1>👋 Привет!</h1>
+      <p class="big">Как тебя зовут?</p>
+      <input id="nameInput" type="text" maxlength="12" placeholder="Имя" autocomplete="off">
+      <p class="big">Выбери картинку:</p>
+      <div id="avatarGrid" class="avatar-grid"></div>
+      <button id="startBtn" class="btn btn-big">Поехали! 🚀</button>
+    </div>
+  </section>
+
+  <!-- ЭКРАН: главный хаб -->
+  <section id="screen-home" class="screen hidden">
+    <header class="topbar">
+      <div class="me"><span id="meAvatar">🦊</span> <span id="meName">Друг</span></div>
+      <div class="stars-box">⭐ <span id="starCount">0</span></div>
+      <button id="settingsBtn" class="icon-btn" aria-label="Настройки">⚙️</button>
+    </header>
+    <h2 class="hub-title">🎯 Выбери игру</h2>
+    <div id="gamesGrid" class="games-grid"></div>
+    <div id="achievementsBox" class="ach-box"></div>
+    <footer class="foot">Сделано с ❤️ для умников и умниц</footer>
+  </section>
+
+  <!-- ЭКРАН: игра -->
+  <section id="screen-game" class="screen hidden">
+    <div class="game-subbar">
+      <button id="backBtn" class="btn btn-back">⬅ Назад</button>
+      <span id="gameTitle" class="game-title">Игра</span>
+      <span id="gameScore" class="game-score"></span>
+    </div>
+    <div id="gameArea" class="game-area"></div>
+  </section>
+
+  <!-- Модалка результата -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <div id="modalEmoji" class="modal-emoji">🎉</div>
+      <h2 id="modalTitle">Молодец!</h2>
+      <p id="modalMsg"></p>
+      <div id="modalStars" class="modal-stars"></div>
+      <div class="modal-btns">
+        <button id="modalAgain" class="btn">Ещё раз 🔁</button>
+        <button id="modalBack" class="btn btn-soft">На главную 🏠</button>
+      </div>
+    </div>
+  </div>
+
+
+ <!-- Модалка настроек -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>⚙️ Настройки</h2>
+      <label class="switch-row">
+        <span>🔊 Звук и озвучка</span>
+        <input type="checkbox" id="soundToggle">
+      </label>
+      <div class="stats-mini" id="statsMini"></div>
+      <button id="resetBtn" class="btn btn-danger">🗑️ Сбросить прогресс</button>
+      <button id="closeSettings" class="btn btn-soft">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Слой летающих звёздочек (анимация награды) -->
+  <div id="confetti" class="confetti hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
