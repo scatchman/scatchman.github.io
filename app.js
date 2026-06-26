@@ -1761,6 +1761,7 @@ function gameFactor(area){
     let pScore=0, cScore=0;
     let turn='player';   // 'player' | 'cpu'
     let busy=false;
+    const history=[];
 
     // Доступные делители числа n на текущем поле
     function availDivisors(n){
@@ -1782,6 +1783,18 @@ function gameFactor(area){
         Нельзя брать число без свободных делителей!</p>
         <p class="big" id="factorTurn">${msg||(turn==='player'?'Твой ход 👇':'Ход компьютера…')}</p>
       </div>`;
+
+      if(history.length){
+        const log=document.createElement('div');
+        log.style.marginTop='8px';
+        history.forEach(entry=>{
+          const p=document.createElement('p');
+          p.className='hint';
+          p.textContent=entry;
+          log.appendChild(p);
+        });
+        area.appendChild(log);
+      }
 
       const grid=document.createElement('div'); grid.className='factor-grid';
       const cols = MAX<=16?4 : 5;
@@ -1817,10 +1830,13 @@ function gameFactor(area){
       // игрок берёт n
       taken[n]=1; pScore+=n;
       const divs=availDivisors(n);
+      const divSum=divs.reduce((a,b)=>a+b,0);
       // компьютер забирает делители
       divs.forEach(d=>{ taken[d]=2; cScore+=d; });
+      const playerLine=`Ты выбрал ${n}. Бот получил ${divs.join(' + ')} = ${divSum}`;
+      history.push(playerLine);
       speak(`Ты взял ${n}. Компьютер забрал ${divs.join(', ')}`);
-      render(`Ты взял ${n} (+${n}). 🤖 забрал делители (+${divs.reduce((a,b)=>a+b,0)})`);
+      render(`Ты взял ${n} (+${n}). 🤖 забрал делители (+${divSum})`);
 
       setTimeout(()=>{
         if(!anyLegalMove()){ finish(); return; }
@@ -1850,9 +1866,12 @@ function gameFactor(area){
         // CPU берёт best
         taken[best]=2; cScore+=best;
         const divs=divisorsOf(best).filter(d=>taken[d]===0);
+        const divSum=divs.reduce((a,b)=>a+b,0);
         divs.forEach(d=>{ taken[d]=1; pScore+=d; });
+        const cpuLine=`Бот выбрал ${best}. Ты получил ${divs.join(' + ')} = ${divSum}`;
+        history.push(cpuLine);
         speak(`Компьютер взял ${best}. Тебе достались делители ${divs.join(', ')}`);
-        render(`🤖 взял ${best} (+${best}). Тебе делители (+${divs.reduce((a,b)=>a+b,0)})`);
+        render(`🤖 взял ${best} (+${best}). Тебе делители (+${divSum})`);
 
         setTimeout(()=>{
           turn='player';
