@@ -1493,19 +1493,89 @@ function gameLaser(area){
     }
   }
 
+  function mirrorForTurn(incoming, outgoing){
+    const pairs = {
+      right:{up:'/', down:'\\'},
+      left:{down:'/', up:'\\'},
+      up:{right:'/', left:'\\'},
+      down:{left:'/', right:'\\'}
+    };
+    return pairs[incoming][outgoing];
+  }
+
+  function manhattan(a,b){
+    return Math.abs(a.r-b.r)+Math.abs(a.c-b.c);
+  }
+
+  function buildSolutionPath(source, requiredMirrors, minDistance, size){
+    const pathCells = [];
+    const mirrors = [];
+    let r=source.r, c=source.c;
+    let dir=source.dir;
+    const pathSet = new Set();
+    const addCell = (rr,cc)=>{
+      const idx=rr*size+cc;
+      if(!pathSet.has(idx)){ pathSet.add(idx); pathCells.push(idx); }
+    };
+    addCell(r,c);
+
+    const turnDirs = {
+      up:['left','right'],
+      down:['left','right'],
+      left:['up','down'],
+      right:['up','down']
+    };
+
+    for(let m=0;m<requiredMirrors;m++){
+      const available = dir==='up' ? r : dir==='down' ? size-1-r : dir==='left' ? c : size-1-c;
+      const maxLen = Math.max(2, Math.min(size-2, available));
+      if(maxLen < 2) return null;
+      const segmentLen = rnd(2, maxLen);
+      const next = {r:r+DIRS[dir][0]*segmentLen, c:c+DIRS[dir][1]*segmentLen};
+      if(next.r<0 || next.r>=size || next.c<0 || next.c>=size) return null;
+
+      let rr=r, cc=c;
+      while(rr!==next.r || cc!==next.c){
+        rr += DIRS[dir][0];
+        cc += DIRS[dir][1];
+        addCell(rr,cc);
+      }
+
+      const outgoing = pick(turnDirs[dir]);
+      mirrors.push({idx:next.r*size+next.c, mirror:mirrorForTurn(dir, outgoing)});
+      r=next.r; c=next.c; dir=outgoing;
+    }
+
+    const lastAvailable = dir==='up' ? r : dir==='down' ? size-1-r : dir==='left' ? c : size-1-c;
+    const lastMaxLen = Math.max(2, Math.min(size-2, lastAvailable));
+    if(lastMaxLen < 2) return null;
+    const finalLen = rnd(2, lastMaxLen);
+    const target = {r:r+DIRS[dir][0]*finalLen, c:c+DIRS[dir][1]*finalLen};
+    if(target.r<0 || target.r>=size || target.c<0 || target.c>=size) return null;
+
+    let rr=r, cc=c;
+    while(rr!==target.r || cc!==target.c){
+      rr += DIRS[dir][0];
+      cc += DIRS[dir][1];
+      addCell(rr,cc);
+    }
+
+    if(manhattan(source,target) < minDistance) return null;
+    return {pathCells: pathCells, mirrorCells: mirrors, target};
+  }
+
   function start(level){
     const N = level===1?5 : level===2?6 : 7;
+    const requiredMirrors = level===1?1 : level===2?2 : 3;
+    const minTargetDistance = level===1?4 : level===2?5 : 6;
 
     // Типы клеток: 'empty' | 'block' | 'mirror'
     // grid[i] = {type, mirror?: '/'|'\\'}
     let grid, source, target, mirrorsAllowed;
 
     function genLevel(){
-      // Пытаемся сгенерировать решаемый уровень: ставим источник, цель,
-      // случайные блоки, и проверяем, что хоть какое-то решение реально.
-      // Упрощённый подход: генерируем "путь" из зеркал, потом прячем их.
-      for(let attempt=0; attempt<400; attempt++){
-        grid = Array(N*N).fill(0).map(()=>({type:'empty'}));
+      for(let attempt=0; attempt<500; attempt++){
+        grid = Array(N*N).fill(0).map(()=>({type:'block'}));
 
         // Источник — на краю, светит внутрь
         const edges = [];
@@ -1513,109 +1583,69 @@ function gameLaser(area){
         for(let r=0;r<N;r++){ edges.push({r,c:0,dir:'right'}); edges.push({r,c:N-1,dir:'left'}); }
         source = pick(edges);
 
-        // Прокладываем луч, иногда ставя зеркала, чтобы получить путь
-        const sol = []; // зеркала решения: {idx, mirror}
-        let r=source.r, c=source.c, dir=source.dir;
-        let steps=0, maxSteps=N*N*2;
-        let placed=0;
-        const usedMirror=new Set();
-        let lastIdx = r*N+c;
+        const solution = buildSolutionPath(source, requiredMirrors, minTargetDistance, N);
+        if(!solution) continue;
 
-        while(steps++ < maxSteps){
-          const idx=r*N+c;
-          lastIdx=idx;
-          // С вероятностью ставим зеркало (но не в стартовой клетке источника на самом краю）
-          const canPlaceHere = idx!==(source.r*N+source.c) && !usedMirror.has(idx);
-          if(canPlaceHere && placed < (N-1) && Math.random()<0.45){
-            // выбираем зеркало, меняющее направление так, чтобы остаться в поле подольше
-            const m = pick(['/','\\']);
-            const nd = reflect(m, dir);
-            usedMirror.add(idx);
-            sol.push({idx, mirror:m});
-            dir = nd;
-            placed++;
-          }
-          // шаг вперёд
-          const [dr,dc]=DIRS[dir];
-          const nr=r+dr, nc=c+dc;
-          if(nr<0||nr>=N||nc<0||nc>=N){
-            // луч вышел за поле — здесь поставим приёмник на последней клетке
-            break;
-          }
-          r=nr; c=nc;
-        }
+        const pathCells = new Set(solution.pathCells);
+        const pathArray = [...pathCells];
+        pathArray.forEach(idx=>{ grid[idx].type='empty'; });
+        grid[source.r*N+source.c].type='empty';
 
-        // Нужна цель внутри поля, отличная от источника, и хотя бы 1 зеркало
-        const targetIdx = lastIdx;
-        if(sol.length<1) continue;
-        if(targetIdx === source.r*N+source.c) continue;
+        target = solution.target;
+        const targetIdx = target.r*N+target.c;
+        grid[targetIdx].type='empty';
 
-        target = {r:Math.floor(targetIdx/N), c:targetIdx%N};
-
-        // Расставим несколько блоков в пустых клетках (не на пути решения)
-        const pathCells = new Set(sol.map(s=>s.idx));
-        pathCells.add(source.r*N+source.c);
-        pathCells.add(targetIdx);
-
-        const freeCells=[];
+        const freeCells = [];
         for(let i=0;i<N*N;i++) if(!pathCells.has(i)) freeCells.push(i);
-        const blockCount = Math.min(freeCells.length, rnd(N-2, N));
-        shuffle(freeCells).slice(0, blockCount).forEach(i=> grid[i].type='block');
+        shuffle(freeCells).slice(0, Math.max(0, Math.min(freeCells.length, rnd(4, Math.min(10, freeCells.length))))).forEach(i=> grid[i].type='empty');
+        freeCells.forEach(i=>{ if(grid[i].type!=='empty') grid[i].type='block'; });
 
-        // Запоминаем сколько зеркал даём игроку
-        mirrorsAllowed = sol.length;
-
-        // Проверим, что заготовленное решение действительно доводит луч до цели
+        mirrorsAllowed = solution.mirrorCells.length;
         const test = grid.map(g=>({...g}));
-        sol.forEach(s=>{ test[s.idx]={type:'mirror', mirror:s.mirror}; });
+        solution.mirrorCells.forEach(({idx, mirror})=>{ test[idx]={type:'mirror', mirror}; });
         if(traceHitsTarget(test)) return true;
       }
-      return false; // не удалось — крайне маловероятно
+      return false;
     }
 
-    // Прогон луча по переданной сетке; true если попал в цель
     function traceHitsTarget(g){
       const path = traceBeam(g);
       const last = path.length ? path[path.length-1] : null;
       return last && last.r===target.r && last.c===target.c && last.hit===true;
     }
 
-    // Трассировка луча. Возвращает массив сегментов {r,c,dir} и флаг hit на цели.
     function traceBeam(g){
       const segs=[];
       let r=source.r, c=source.c, dir=source.dir;
       let steps=0, max=N*N*4;
-      // первая клетка — источник
       segs.push({r,c,dir, hit:false});
       while(steps++<max){
-        // если в текущей клетке зеркало — отражаем
         const cur=g[r*N+c];
         if(cur && cur.type==='mirror'){
           dir = reflect(cur.mirror, dir);
         }
         const [dr,dc]=DIRS[dir];
         const nr=r+dr, nc=c+dc;
-        if(nr<0||nr>=N||nc<0||nc>=N) break; // ушёл за поле
+        if(nr<0||nr>=N||nc<0||nc>=N) break;
         const ncell=g[nr*N+nc];
-        if(ncell.type==='block'){ break; } // упёрся в блок
+        if(ncell.type==='block'){ break; }
         r=nr; c=nc;
         const isTarget = (r===target.r && c===target.c);
         segs.push({r,c,dir, hit:isTarget});
-        if(isTarget) break; // попали — стоп
+        if(isTarget) break;
       }
       return segs;
     }
 
     if(!genLevel()){
-      // fallback: простейший уровень
       grid=Array(N*N).fill(0).map(()=>({type:'empty'}));
       source={r:0,c:0,dir:'down'};
       target={r:N-1,c:0};
       mirrorsAllowed=1;
     }
 
-    let started=false;     // запущен ли луч (анимация)
-    let beamSegs=[];       // активные сегменты для подсветки
+    let started=false;
+    let beamSegs=[];
 
     function placedMirrors(){
       return grid.filter(g=>g.type==='mirror').length;
@@ -1624,14 +1654,13 @@ function gameLaser(area){
     function render(){
       setScore('Зеркал: '+placedMirrors()+'/'+mirrorsAllowed);
       area.innerHTML=`<p class="hint center">Клик по клетке ставит зеркало. Ещё клики: / → \\ → убрать.<br>
-        Доведи 🔦 луч до 🎯, обойди ⬛. Доступно зеркал: ${mirrorsAllowed}.</p>`;
+        Доведи 🔦 луч до 🎯, обойди ⬛. Нужно зеркал: ${mirrorsAllowed}.</p>`;
 
       const wrap=document.createElement('div');
       wrap.className='laser-grid';
       wrap.style.gridTemplateColumns=`repeat(${N},1fr)`;
 
-      // множество клеток через которые идёт луч (для подсветки)
-      const beamSet=new Map(); // idx -> dir последнего прохода
+      const beamSet=new Map();
       beamSegs.forEach(s=> beamSet.set(s.r*N+s.c, s.dir));
 
       for(let i=0;i<N*N;i++){
@@ -1640,7 +1669,6 @@ function gameLaser(area){
         cell.className='laser-cell';
         const g=grid[i];
 
-        // источник — показываем иконку с направлением луча
         if(r===source.r && c===source.c){
           cell.classList.add('laser-src');
           const arrowMap = { up: '↑', down: '↓', left: '←', right: '→' };
@@ -1649,19 +1677,16 @@ function gameLaser(area){
           cell.title = 'Направление: ' + (source.dir || '');
           cell.disabled = true;
         }
-        // цель
         else if(r===target.r && c===target.c){
           cell.classList.add('laser-tgt');
           cell.textContent='🎯';
           cell.onclick=()=>toggleMirror(i);
         }
-        // блок
         else if(g.type==='block'){
           cell.classList.add('laser-block');
           cell.textContent='⬛';
           cell.disabled=true;
         }
-        // обычная / зеркало
         else {
           if(g.type==='mirror'){
             cell.classList.add('laser-mirror');
@@ -1670,7 +1695,6 @@ function gameLaser(area){
           cell.onclick=()=>toggleMirror(i);
         }
 
-        // подсветка луча
         if(beamSet.has(i)){
           cell.classList.add('laser-beam');
         }
@@ -1704,7 +1728,6 @@ function gameLaser(area){
     function fire(){
       started=true;
       const segs=traceBeam(grid);
-      // Анимируем появление сегментов по очереди
       beamSegs=[];
       let k=0;
       const timer=setInterval(()=>{
