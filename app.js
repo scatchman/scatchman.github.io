@@ -1472,9 +1472,8 @@ function gameConnect4(area){
    ============================================================ */
 function gameLaser(area){
   chooseLevel(area,'🔦 Лазерный лабиринт', start,
-    ['Лёгкий 🙂 (5×5)','Средний 😎 (6×6)','Сложный 🤓 (7×7)']);
+    ['10 уровней 🔥']);
 
-  // Направления: вектор (dr, dc)
   const DIRS = {
     up:    [-1, 0],
     down:  [ 1, 0],
@@ -1482,13 +1481,10 @@ function gameLaser(area){
     right: [ 0, 1]
   };
 
-  // Правила отражения зеркал.
-  // '/'  : right->up, up->right, left->down, down->left
-  // '\\' : right->down, down->right, left->up, up->left
   function reflect(mirror, dir){
     if(mirror==='/'){
       return {right:'up', up:'right', left:'down', down:'left'}[dir];
-    }else{ // '\'
+    }else{
       return {right:'down', down:'right', left:'up', up:'left'}[dir];
     }
   }
@@ -1507,7 +1503,7 @@ function gameLaser(area){
     return Math.abs(a.r-b.r)+Math.abs(a.c-b.c);
   }
 
-  function buildSolutionPath(source, requiredMirrors, minDistance, size){
+  function buildSolutionPath(source, requiredMirrors, size, stage){
     const pathCells = [];
     const mirrors = [];
     let r=source.r, c=source.c;
@@ -1526,11 +1522,13 @@ function gameLaser(area){
       right:['up','down']
     };
 
+    const maxTurnLen = Math.max(2, Math.min(size-2, 2 + Math.floor(stage/3)));
+
     for(let m=0;m<requiredMirrors;m++){
       const available = dir==='up' ? r : dir==='down' ? size-1-r : dir==='left' ? c : size-1-c;
       const maxLen = Math.max(2, Math.min(size-2, available));
       if(maxLen < 2) return null;
-      const segmentLen = rnd(2, maxLen);
+      const segmentLen = rnd(2, Math.min(maxLen, maxTurnLen));
       const next = {r:r+DIRS[dir][0]*segmentLen, c:c+DIRS[dir][1]*segmentLen};
       if(next.r<0 || next.r>=size || next.c<0 || next.c>=size) return null;
 
@@ -1541,7 +1539,10 @@ function gameLaser(area){
         addCell(rr,cc);
       }
 
-      const outgoing = pick(turnDirs[dir]);
+      let outgoing = pick(turnDirs[dir]);
+      if(stage>=7 && m%2===0 && Math.random()<0.55){
+        outgoing = outgoing===turnDirs[dir][0] ? turnDirs[dir][1] : turnDirs[dir][0];
+      }
       mirrors.push({idx:next.r*size+next.c, mirror:mirrorForTurn(dir, outgoing)});
       r=next.r; c=next.c; dir=outgoing;
     }
@@ -1549,7 +1550,7 @@ function gameLaser(area){
     const lastAvailable = dir==='up' ? r : dir==='down' ? size-1-r : dir==='left' ? c : size-1-c;
     const lastMaxLen = Math.max(2, Math.min(size-2, lastAvailable));
     if(lastMaxLen < 2) return null;
-    const finalLen = rnd(2, lastMaxLen);
+    const finalLen = rnd(2, Math.min(lastMaxLen, 2 + Math.floor(stage/2)));
     const target = {r:r+DIRS[dir][0]*finalLen, c:c+DIRS[dir][1]*finalLen};
     if(target.r<0 || target.r>=size || target.c<0 || target.c>=size) return null;
 
@@ -1560,35 +1561,47 @@ function gameLaser(area){
       addCell(rr,cc);
     }
 
-    if(manhattan(source,target) < minDistance) return null;
+    if(manhattan(source,target) < (3 + stage)) return null;
     return {pathCells: pathCells, mirrorCells: mirrors, target};
   }
 
-  function start(level){
-    const N = level===1?5 : level===2?6 : 7;
-    const requiredMirrors = level===1?1 : level===2?2 : 3;
-    const minTargetDistance = level===1?4 : level===2?5 : 6;
-
-    // Типы клеток: 'empty' | 'block' | 'mirror'
-    // grid[i] = {type, mirror?: '/'|'\\'}
+  function start(){
+    const MAX_STAGES = 10;
+    let currentStage = 1;
     let grid, source, target, mirrorsAllowed;
+    let started=false;
+    let beamSegs=[];
+    let N=5;
 
-    function genLevel(){
-      for(let attempt=0; attempt<500; attempt++){
+    function requiredMirrorsForStage(stage){
+      if(stage<=2) return 1;
+      if(stage<=4) return 2;
+      if(stage<=6) return 3;
+      if(stage<=8) return 4;
+      return 5 + Math.min(1, Math.floor((stage-8)/2));
+    }
+
+    function sizeForStage(stage){
+      return stage<=3 ? 5 : stage<=6 ? 6 : 7;
+    }
+
+    function genLevel(stage){
+      const N = sizeForStage(stage);
+      const requiredMirrors = requiredMirrorsForStage(stage);
+      const minTargetDistance = 3 + stage;
+      for(let attempt=0; attempt<700; attempt++){
         grid = Array(N*N).fill(0).map(()=>({type:'block'}));
 
-        // Источник — на краю, светит внутрь
         const edges = [];
         for(let c=0;c<N;c++){ edges.push({r:0,c,dir:'down'}); edges.push({r:N-1,c,dir:'up'}); }
         for(let r=0;r<N;r++){ edges.push({r,c:0,dir:'right'}); edges.push({r,c:N-1,dir:'left'}); }
         source = pick(edges);
 
-        const solution = buildSolutionPath(source, requiredMirrors, minTargetDistance, N);
+        const solution = buildSolutionPath(source, requiredMirrors, N, stage);
         if(!solution) continue;
 
         const pathCells = new Set(solution.pathCells);
-        const pathArray = [...pathCells];
-        pathArray.forEach(idx=>{ grid[idx].type='empty'; });
+        pathCells.forEach(idx=>{ grid[idx].type='empty'; });
         grid[source.r*N+source.c].type='empty';
 
         target = solution.target;
@@ -1596,38 +1609,38 @@ function gameLaser(area){
         grid[targetIdx].type='empty';
 
         const freeCells = [];
-        for(let i=0;i<N*N;i++) if(!pathCells.has(i)) freeCells.push(i);
-        shuffle(freeCells).slice(0, Math.max(0, Math.min(freeCells.length, rnd(4, Math.min(10, freeCells.length))))).forEach(i=> grid[i].type='empty');
-        freeCells.forEach(i=>{ if(grid[i].type!=='empty') grid[i].type='block'; });
+        for(let i=0;i<N*N;i++) if(!pathCells.has(i) && i!==targetIdx) freeCells.push(i);
+        const blockBudget = Math.min(freeCells.length - Math.max(6, requiredMirrors+3), Math.round(freeCells.length*(0.35 + stage*0.03)));
+        shuffle(freeCells).slice(0, Math.max(4, blockBudget)).forEach(i=> grid[i].type='block');
 
-        mirrorsAllowed = solution.mirrorCells.length;
+        mirrorsAllowed = requiredMirrors;
         const test = grid.map(g=>({...g}));
         solution.mirrorCells.forEach(({idx, mirror})=>{ test[idx]={type:'mirror', mirror}; });
-        if(traceHitsTarget(test)) return true;
+        if(traceHitsTarget(test, N)) return {N, requiredMirrors};
       }
-      return false;
+      return null;
     }
 
-    function traceHitsTarget(g){
-      const path = traceBeam(g);
+    function traceHitsTarget(g, size){
+      const path = traceBeam(g, size);
       const last = path.length ? path[path.length-1] : null;
       return last && last.r===target.r && last.c===target.c && last.hit===true;
     }
 
-    function traceBeam(g){
+    function traceBeam(g, size){
       const segs=[];
       let r=source.r, c=source.c, dir=source.dir;
-      let steps=0, max=N*N*4;
+      let steps=0, max=1000;
       segs.push({r,c,dir, hit:false});
       while(steps++<max){
-        const cur=g[r*N+c];
+        const cur=g[r*size+c];
         if(cur && cur.type==='mirror'){
           dir = reflect(cur.mirror, dir);
         }
         const [dr,dc]=DIRS[dir];
         const nr=r+dr, nc=c+dc;
-        if(nr<0||nr>=N||nc<0||nc>=N) break;
-        const ncell=g[nr*N+nc];
+        if(nr<0||nr>=size||nc<0||nc>=size) break;
+        const ncell=g[nr*size+nc];
         if(ncell.type==='block'){ break; }
         r=nr; c=nc;
         const isTarget = (r===target.r && c===target.c);
@@ -1637,24 +1650,32 @@ function gameLaser(area){
       return segs;
     }
 
-    if(!genLevel()){
-      grid=Array(N*N).fill(0).map(()=>({type:'empty'}));
-      source={r:0,c:0,dir:'down'};
-      target={r:N-1,c:0};
-      mirrorsAllowed=1;
-    }
-
-    let started=false;
-    let beamSegs=[];
-
     function placedMirrors(){
       return grid.filter(g=>g.type==='mirror').length;
     }
 
+    function startStage(stage){
+      const prepared = genLevel(stage);
+      if(!prepared){
+        grid=Array(25).fill(0).map(()=>({type:'empty'}));
+        source={r:0,c:0,dir:'down'};
+        target={r:4,c:0};
+        mirrorsAllowed=1;
+        N=5;
+      }else{
+        N=prepared.N;
+        mirrorsAllowed=prepared.requiredMirrors;
+      }
+      started=false;
+      beamSegs=[];
+      setScore(`Этап ${stage}/${MAX_STAGES}`);
+      render();
+    }
+
     function render(){
-      setScore('Зеркал: '+placedMirrors()+'/'+mirrorsAllowed);
+      setScore(`Этап ${currentStage}/${MAX_STAGES} · минимум ${mirrorsAllowed}`);
       area.innerHTML=`<p class="hint center">Клик по клетке ставит зеркало. Ещё клики: / → \\ → убрать.<br>
-        Доведи 🔦 луч до 🎯, обойди ⬛. Нужно зеркал: ${mirrorsAllowed}.</p>`;
+        Доведи 🔦 луч до 🎯, обойди ⬛. На этом этапе нужен минимум ${mirrorsAllowed} зеркал.</p>`;
 
       const wrap=document.createElement('div');
       wrap.className='laser-grid';
@@ -1727,7 +1748,7 @@ function gameLaser(area){
 
     function fire(){
       started=true;
-      const segs=traceBeam(grid);
+      const segs=traceBeam(grid, N);
       beamSegs=[];
       let k=0;
       const timer=setInterval(()=>{
@@ -1737,11 +1758,19 @@ function gameLaser(area){
           const win = last && last.r===target.r && last.c===target.c && last.hit;
           started=false;
           if(win){
-            speak('Есть попадание!');
-            finishGame('laser',{win:true, stars:3, scoreForBest:1,
-              title:'Луч попал в цель! 🎯🎉', emoji:'🔦',
-              msg:'Отличное пространственное мышление!',
-              again:()=>gameLaser(area)});
+            if(currentStage>=MAX_STAGES){
+              speak('Серия пройдена!');
+              finishGame('laser',{win:true, stars:3, scoreForBest:1,
+                title:'Ультра-сложная серия пройдена! 🔥🎯', emoji:'🔦',
+                msg:'Ты дошёл до самого жёсткого уровня. Это уже взрослый уровень.',
+                again:()=>gameLaser(area)});
+            }else{
+              speak('Супер. Следующий этап уже ближе!');
+              setTimeout(()=>{
+                currentStage++;
+                startStage(currentStage);
+              }, 1100);
+            }
           }else{
             speak('Луч не дошёл до цели. Попробуй переставить зеркала.');
             setTimeout(()=>{ beamSegs=[]; render(); }, 1200);
@@ -1754,7 +1783,7 @@ function gameLaser(area){
       }, 120);
     }
 
-    render();
+    startStage(currentStage);
   }
 }
 
