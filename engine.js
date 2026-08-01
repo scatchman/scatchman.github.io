@@ -90,7 +90,7 @@ const LEVELS = {};
 // ------------------------------------------------------------
 LEVELS["1"] = (function(){
   const S = {
-    me: { name:"PC1", ip:"192.168.1.10", mask:24, mac:"aa:aa:aa:00:00:01", gateway:"192.168.1.1", dns:"192.168.1.53" },
+    me: { name:"PC1", ip:"192.168.1.10", mask:24, mac:"aa:aa:aa:00:00:01", gateway:"192.168.1.1", dns:"192.168.1.1" },
     gatewayMac: "bb:bb:bb:00:00:01",
     neighborMacs: ["bb:bb:bb:00:00:05","bb:bb:bb:00:00:20","bb:bb:bb:00:00:07"],
     dnsRecords: { "www.example.com": "93.184.216.34" },
@@ -135,8 +135,7 @@ LEVELS["1"] = (function(){
     return `
       <div class="panel">
         <h2>🎯 Задача</h2>
-        <div class="task">Браузер хочет открыть <b>www.example.com</b>. Отправь HTTP-запрос.
-          <br><span style="color:#7d8aa0;">Сначала узнай IP сайта, потом собери конверт и отправь.</span></div>
+        <div class="task">Браузер хочет открыть <b>www.example.com</b>. Отправь HTTP-запрос.</div>
         <button class="btn btn-hint" id="hintBtn">💡 Подсказка</button>
         <div class="note" id="hintText"></div>
       </div>
