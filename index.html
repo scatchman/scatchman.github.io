@@ -1,80 +1,160 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Чемоданчик игр</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetSim — тренажёр сетевого оборудования</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f1420; color: #e6ecf5; margin: 0; padding: 20px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #7d8aa0; font-size: 13px; margin-bottom: 16px; }
+
+  /* Переключатель уровней */
+  .levelbar {
+    max-width: 1200px; margin: 0 auto 16px; display: flex; gap: 8px;
+    flex-wrap: wrap; align-items: center;
+  }
+  .levelbar .lb-label { color: #7d8aa0; font-size: 13px; margin-right: 4px; }
+  .lvl-btn {
+    background: #1a2338; border: 1px solid #34405e; color: #b8c6e0;
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer;
+    font-weight: 600;
+  }
+  .lvl-btn:hover { background: #24304a; }
+  .lvl-btn.active { background: #3a4c72; color: #fff; border-color: #5a78b8; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 720px);
+    gap: 20px;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .field input { max-width: 260px; }
+
+  .panel {
+    background: #171e2e; border: 1px solid #263149; border-radius: 10px;
+    padding: 14px; margin-bottom: 16px;
+  }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; color: #9fb4d8; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Книжки-таблицы */
+  .book table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .book th { text-align: left; color: #7d8aa0; font-weight: 500; padding: 4px 6px; border-bottom: 1px solid #263149; }
+  .book td { padding: 5px 6px; border-bottom: 1px solid #1e2740; font-family: 'Consolas', monospace; }
+  .book tr:hover { background: #1c2438; }
+  .copyable { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .copy-btn {
+    background: #2b3855; border: none; color: #cfe;
+    border-radius: 5px; padding: 2px 8px; font-size: 11px; cursor: pointer;
+  }
+  .copy-btn:hover { background: #3a4c72; }
+  .copy-btn.copied { background: #2e7d46; }
+
+  /* Конверт-матрёшка */
+  .envelope {
+    border: 2px solid #4a5f8a; border-radius: 10px; padding: 12px;
+    background: linear-gradient(160deg, #1c2740, #182035);
+  }
+  .env-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: #8fa8d8; margin-bottom: 8px; font-weight: 600;
+  }
+  .env-arp { border-color: #a86a8a; background: linear-gradient(160deg, #2c1c28, #241820); }
+  .env-arp .env-label { color: #d88fb8; }
+  .env-ip { border-color: #6a8a4a; background: linear-gradient(160deg, #202c1c, #1a2418); margin-top: 10px; }
+  .env-ip .env-label { color: #a8d88f; }
+  .env-app { border-color: #8a6a4a; background: linear-gradient(160deg, #2c241c, #241d18); margin-top: 10px; }
+  .env-app .env-label { color: #d8b88f; }
+
+  .field { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .field label { width: 90px; font-size: 12px; color: #9fb4d8; }
+  .field input {
+    flex: 1; background: #0f1420; border: 1px solid #34405e; color: #e6ecf5;
+    border-radius: 6px; padding: 6px 8px; font-family: 'Consolas', monospace; font-size: 13px;
+  }
+  .field input:focus { outline: none; border-color: #5a78b8; }
+  .field .fixed { flex: 1; padding: 6px 8px; color: #b8c6e0; font-family: 'Consolas', monospace; font-size: 13px; background: #131a2a; border-radius: 6px; border: 1px dashed #2a3550; max-width: 260px; }
+  .field .paste-btn {
+    background: #2b3855; border: none; color: #cfe; border-radius: 5px;
+    padding: 6px 10px; font-size: 11px; cursor: pointer;
+  }
+  .field .paste-btn:hover { background: #3a4c72; }
+
+  .btn {
+    border: none; border-radius: 8px; padding: 10px 16px; font-size: 14px;
+    cursor: pointer; font-weight: 600;
+  }
+  .btn-dns { background: #3a4c72; color: #dce8ff; }
+  .btn-dns:hover { background: #4a5f8a; }
+  .btn-dns:disabled { background: #232c42; color: #55607a; cursor: default; }
+  .btn-start { background: #2e7d46; color: #fff; width: 100%; margin-top: 14px; font-size: 16px; }
+  .btn-start:hover { background: #379a55; }
+  .btn-hint { background: #5a4a72; color: #e8dcff; font-size: 12px; padding: 6px 12px; }
+  .btn-hint:hover { background: #6f5c8a; }
+  .btn-tool { background: #7a5a2a; color: #ffe8c8; margin-top: 8px; }
+  .btn-tool:hover { background: #9a733a; }
+  .btn-secondary { background: #2b3855; color: #cfe; }
+  .btn-secondary:hover { background: #3a4c72; }
+
+  .ports { display: flex; gap: 10px; flex-wrap: wrap; }
+  .port {
+    background: #131a2a; border: 1px solid #34405e; border-radius: 8px;
+    padding: 8px 12px; font-size: 12px; font-family: 'Consolas', monospace;
+    cursor: pointer;
+  }
+  .port:hover { border-color: #5a78b8; background: #1a2438; }
+  .port.selected { border-color: #2e9a55; background: #17301f; }
+  .port b { color: #9fb4d8; }
+
+  #log {
+    background: #0c101a; border: 1px solid #263149; border-radius: 8px;
+    padding: 12px; font-size: 13px; min-height: 60px; line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .log-ok { color: #7fd89a; }
+  .log-err { color: #f08a8a; }
+  .log-info { color: #8fa8d8; }
+  .log-step { color: #c8d4e8; }
+  .emoji { font-size: 18px; }
+
+  .task { background: #1a2338; border-left: 3px solid #5a78b8; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
+  .note { font-size: 12px; color: #7d8aa0; margin-top: 8px; min-height: 18px; }
+  .hidden { display: none; }
+  .radio-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+  .radio-row input { width: auto; }
+  select {
+    background: #0f1420; border: 1px solid #34405e; color: #e6ecf5;
+    border-radius: 6px; padding: 6px 8px; font-family: 'Consolas', monospace; font-size: 13px;
+  }
+</style>
 </head>
 <body>
 
-  <!-- ЭКРАН: выбор профиля -->
-  <section id="screen-profile" class="screen">
-    <div class="profile-box">
-      <h1>👋 Привет!</h1>
-      <p class="big">Как тебя зовут?</p>
-      <input id="nameInput" type="text" maxlength="12" placeholder="Имя" autocomplete="off">
-      <p class="big">Выбери картинку:</p>
-      <div id="avatarGrid" class="avatar-grid"></div>
-      <button id="startBtn" class="btn btn-big">Поехали! 🚀</button>
-    </div>
-  </section>
+<h1>🖥️ NetSim — тренажёр сетевого оборудования</h1>
+<div class="sub" id="roleSub">Выбери уровень.</div>
 
-  <!-- ЭКРАН: главный хаб -->
-  <section id="screen-home" class="screen hidden">
-    <header class="topbar">
-      <div class="me"><span id="meAvatar">🦊</span> <span id="meName">Друг</span></div>
-      <div class="stars-box">⭐ <span id="starCount">0</span></div>
-      <button id="settingsBtn" class="icon-btn" aria-label="Настройки">⚙️</button>
-    </header>
-    <h2 class="hub-title">🎯 Выбери игру</h2>
-    <div id="gamesGrid" class="games-grid"></div>
-    <div id="achievementsBox" class="ach-box"></div>
-    <footer class="foot">Сделано с ❤️ для умников и умниц</footer>
-  </section>
+<div class="levelbar">
+  <span class="lb-label">Уровень:</span>
+  <button class="lvl-btn" data-level="1">Уровень 1</button>
+  <button class="lvl-btn" data-level="2a">Уровень 2a</button>
+  <button class="lvl-btn" data-level="2b">Уровень 2b</button>
+  <button class="lvl-btn" data-level="3a">Уровень 3a</button>
+  <button class="lvl-btn" data-level="3b">Уровень 3b</button>
+</div>
 
-  <!-- ЭКРАН: игра -->
-  <section id="screen-game" class="screen hidden">
-    <div class="game-subbar">
-      <button id="backBtn" class="btn btn-back">⬅ Назад</button>
-      <span id="gameTitle" class="game-title">Игра</span>
-      <span id="gameScore" class="game-score"></span>
-    </div>
-    <div id="gameArea" class="game-area"></div>
-  </section>
+<div class="layout">
+  <!-- ЛЕВАЯ КОЛОНКА -->
+  <div id="leftCol"></div>
+  <!-- ПРАВАЯ КОЛОНКА -->
+  <div id="rightCol"></div>
+</div>
 
-  <!-- Модалка результата -->
-  <div id="modal" class="modal hidden">
-    <div class="modal-card">
-      <div id="modalEmoji" class="modal-emoji">🎉</div>
-      <h2 id="modalTitle">Молодец!</h2>
-      <p id="modalMsg"></p>
-      <div id="modalStars" class="modal-stars"></div>
-      <div class="modal-btns">
-        <button id="modalAgain" class="btn">Ещё раз 🔁</button>
-        <button id="modalBack" class="btn btn-soft">На главную 🏠</button>
-      </div>
-    </div>
-  </div>
-
-
- <!-- Модалка настроек -->
-  <div id="settingsModal" class="modal hidden">
-    <div class="modal-card">
-      <h2>⚙️ Настройки</h2>
-      <label class="switch-row">
-        <span>🔊 Звук и озвучка</span>
-        <input type="checkbox" id="soundToggle">
-      </label>
-      <div class="stats-mini" id="statsMini"></div>
-      <button id="resetBtn" class="btn btn-danger">🗑️ Сбросить прогресс</button>
-      <button id="closeSettings" class="btn btn-soft">Закрыть</button>
-    </div>
-  </div>
-
-  <!-- Слой летающих звёздочек (анимация награды) -->
-  <div id="confetti" class="confetti hidden"></div>
-
-  <script src="app.js"></script>
+<script src="engine.js"></script>
 </body>
 </html>
