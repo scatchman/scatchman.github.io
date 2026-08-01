@@ -548,7 +548,6 @@ LEVELS["3a"] = (function(){
       <div class="panel">
         <h2>🎯 Задача</h2>
         <div class="task">Кадр <b>${frame.id}/5</b> пришёл на порт <b>${frame.inPort}</b>.<br>
-          ${frame.note}<br>
           <span style="color:#7d8aa0;">Посмотри dst MAC, найди его в MAC-таблице и выбери, как обработать кадр.</span></div>
         <button class="btn btn-hint" id="hintBtn">💡 Подсказка</button>
         <div class="note" id="hintText"></div>
