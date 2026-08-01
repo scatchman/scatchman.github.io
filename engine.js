@@ -208,7 +208,7 @@ LEVELS["1"] = (function(){
     if (!isValidMac(dstMac)) return fail('<b>dst MAC</b> некорректен. Ожидается вид aa:bb:cc:dd:ee:ff.');
     if (dstMac === me.mac) return fail('В <b>dst MAC</b> твой собственный MAC. Кадр не адресуется самому себе.');
     if (dstMac === S.serverMac) return fail(
-      'В <b>dst MAC</b> ты поставил MAC самого сервера. Но откуда бы тебе его знать? 🤔<br>'
+      'В <b>dst MAC</b> ты поставил MAC самого сервера.<br>'
       + 'Сервер в <b>другой</b> сети — его MAC недоступен в твоём сегменте. Кадр не дойдёт.<br>'
       + '<b>Правило:</b> адресат в другой сети → кадр всегда отдаётся <b>шлюзу</b>.');
 
