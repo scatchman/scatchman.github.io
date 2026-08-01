@@ -2,16 +2,18 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>NetSim — тренажёр сетевого оборудования</title>
 <style>
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     font-family: 'Segoe UI', system-ui, sans-serif;
     background: #0f1420; color: #e6ecf5; margin: 0; padding: 20px;
+    line-height: 1.4;
   }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .sub { color: #7d8aa0; font-size: 13px; margin-bottom: 16px; }
+  h1 { font-size: clamp(18px, 4vw, 24px); margin: 0 0 4px; }
+  .sub { color: #7d8aa0; font-size: clamp(12px, 2vw, 14px); margin-bottom: 16px; }
 
   /* Переключатель уровней */
   .levelbar {
@@ -22,20 +24,20 @@
   .lvl-btn {
     background: #1a2338; border: 1px solid #34405e; color: #b8c6e0;
     border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer;
-    font-weight: 600;
+    font-weight: 600; white-space: nowrap;
   }
   .lvl-btn:hover { background: #24304a; }
   .lvl-btn.active { background: #3a4c72; color: #fff; border-color: #5a78b8; }
 
   .layout {
     display: grid;
-    grid-template-columns: 360px minmax(0, 720px);
+    grid-template-columns: minmax(280px, 360px) minmax(0, 720px);
     gap: 20px;
     align-items: start;
     max-width: 1200px;
     margin: 0 auto;
   }
-  .field input { max-width: 260px; }
+  #leftCol, #rightCol { min-width: 0; }
 
   .panel {
     background: #171e2e; border: 1px solid #263149; border-radius: 10px;
@@ -44,11 +46,12 @@
   .panel h2 { font-size: 14px; margin: 0 0 10px; color: #9fb4d8; text-transform: uppercase; letter-spacing: 0.5px; }
 
   /* Книжки-таблицы */
-  .book table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .book { overflow-x: auto; }
+  .book table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
   .book th { text-align: left; color: #7d8aa0; font-weight: 500; padding: 4px 6px; border-bottom: 1px solid #263149; }
-  .book td { padding: 5px 6px; border-bottom: 1px solid #1e2740; font-family: 'Consolas', monospace; }
+  .book td { padding: 5px 6px; border-bottom: 1px solid #1e2740; font-family: 'Consolas', monospace; word-break: break-word; }
   .book tr:hover { background: #1c2438; }
-  .copyable { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .copyable { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
   .copy-btn {
     background: #2b3855; border: none; color: #cfe;
     border-radius: 5px; padding: 2px 8px; font-size: 11px; cursor: pointer;
@@ -72,17 +75,19 @@
   .env-app { border-color: #8a6a4a; background: linear-gradient(160deg, #2c241c, #241d18); margin-top: 10px; }
   .env-app .env-label { color: #d8b88f; }
 
-  .field { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-  .field label { width: 90px; font-size: 12px; color: #9fb4d8; }
-  .field input {
-    flex: 1; background: #0f1420; border: 1px solid #34405e; color: #e6ecf5;
+  .field { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+  .field label { width: 90px; font-size: 12px; color: #9fb4d8; flex-shrink: 0; }
+  .field input,
+  .field .fixed,
+  select {
+    flex: 1 1 220px; min-width: 0; background: #0f1420; border: 1px solid #34405e; color: #e6ecf5;
     border-radius: 6px; padding: 6px 8px; font-family: 'Consolas', monospace; font-size: 13px;
   }
   .field input:focus { outline: none; border-color: #5a78b8; }
-  .field .fixed { flex: 1; padding: 6px 8px; color: #b8c6e0; font-family: 'Consolas', monospace; font-size: 13px; background: #131a2a; border-radius: 6px; border: 1px dashed #2a3550; max-width: 260px; }
+  .field .fixed { padding: 6px 8px; color: #b8c6e0; background: #131a2a; border-radius: 6px; border: 1px dashed #2a3550; }
   .field .paste-btn {
     background: #2b3855; border: none; color: #cfe; border-radius: 5px;
-    padding: 6px 10px; font-size: 11px; cursor: pointer;
+    padding: 6px 10px; font-size: 11px; cursor: pointer; margin-left: auto;
   }
   .field .paste-btn:hover { background: #3a4c72; }
 
@@ -131,6 +136,29 @@
   select {
     background: #0f1420; border: 1px solid #34405e; color: #e6ecf5;
     border-radius: 6px; padding: 6px 8px; font-family: 'Consolas', monospace; font-size: 13px;
+  }
+
+  @media (max-width: 900px) {
+    body { padding: 14px; }
+    .layout { grid-template-columns: 1fr; }
+    .panel { padding: 12px; }
+    .field { align-items: stretch; }
+    .field label { width: 100%; margin-bottom: 2px; }
+    .field .paste-btn { width: 100%; margin-left: 0; margin-top: 4px; }
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    .levelbar { gap: 6px; }
+    .lvl-btn { width: 100%; text-align: center; }
+    .panel h2 { font-size: 13px; }
+    .task, .note { font-size: 12px; }
+    .btn, .btn-hint, .btn-dns, .btn-start { width: 100%; }
+    .book table { font-size: 11px; }
+    .copy-btn { padding: 2px 6px; font-size: 10px; }
+    .field input, .field .fixed, select { font-size: 12px; padding: 7px 8px; }
+    .ports { flex-direction: column; }
+    .port { width: 100%; }
   }
 </style>
 </head>
