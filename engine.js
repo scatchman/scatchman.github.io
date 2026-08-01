@@ -706,10 +706,10 @@ LEVELS["3b"] = (function(){
     ],
     frames: [
       { id:1, label:"Кадр 1", srcMac:"aa:aa:aa:00:00:02", dstMac:"dd:dd:dd:00:00:09", inPort:"Fa0/2", note:"Порт Fa0/2 отправляет неизвестный unicast." },
-      { id:2, label:"Кадр 2", srcMac:"dd:dd:dd:00:00:09", dstMac:"aa:aa:aa:00:00:02", inPort:"Fa0/3", note:"Это ответный кадр. Теперь dst MAC известен, и кадр идёт на Fa0/2." },
-      { id:3, label:"Кадр 3", srcMac:"aa:aa:aa:00:00:02", dstMac:"dd:dd:dd:00:00:09", inPort:"Fa0/2", note:"Теперь dst MAC уже изучен после ответа — отправляем в нужный порт, а не во флуд." },
-      { id:4, label:"Кадр 4", srcMac:"cc:cc:cc:00:00:03", dstMac:"aa:aa:aa:00:00:01", inPort:"Fa0/3", note:"Ещё один unicast: dst MAC уже известен и находится на Fa0/1." },
-      { id:5, label:"Кадр 5", srcMac:"dd:dd:dd:00:00:04", dstMac:"cc:cc:cc:00:00:03", inPort:"Fa0/4", note:"И ещё один пример: после обучения MAC отправляем точечно на Fa0/3." },
+      { id:2, label:"Кадр 2", srcMac:"dd:dd:dd:00:00:09", dstMac:"aa:aa:aa:00:00:02", inPort:"Fa0/3", note:"Ответный кадр." },
+      { id:3, label:"Кадр 3", srcMac:"aa:aa:aa:00:00:02", dstMac:"dd:dd:dd:00:00:09", inPort:"Fa0/2", note:"Обрати внимание на CAM таблицу." },
+      { id:4, label:"Кадр 4", srcMac:"cc:cc:cc:00:00:03", dstMac:"aa:aa:aa:00:00:01", inPort:"Fa0/3", note:"" },
+      { id:5, label:"Кадр 5", srcMac:"dd:dd:dd:00:00:04", dstMac:"cc:cc:cc:00:00:03", inPort:"Fa0/4", note:"" },
     ],
   };
 
